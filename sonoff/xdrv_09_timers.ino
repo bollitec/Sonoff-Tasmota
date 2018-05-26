@@ -262,7 +262,7 @@ void TimerEverySecond()
 {
   if (RtcTime.valid) {
     if (!RtcTime.hour && !RtcTime.minute && !RtcTime.second) { TimerSetRandomWindows(); }  // Midnight
-    if (RtcTime.minute != timer_last_minute) {  // Execute every minute only once
+    if ((uptime > 60) && (RtcTime.minute != timer_last_minute)) {  // Execute from one minute after restart every minute only once
       timer_last_minute = RtcTime.minute;
       int16_t time = (RtcTime.hour *60) + RtcTime.minute;
       uint8_t days = 1 << (RtcTime.day_of_week -1);
@@ -287,7 +287,7 @@ void TimerEverySecond()
 #ifdef USE_RULES
               if (3 == xtimer.power) {  // Blink becomes Rule disregarding device and allowing use of Backlog commands
                 snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("{\"Clock\":{\"Timer\":%d}}"), i +1);
-                RulesProcess();
+                XdrvRulesProcess();
               } else
 #endif  // USE_RULES
                 if (devices_present) { ExecuteCommandPower(xtimer.device +1, xtimer.power); }
@@ -345,7 +345,10 @@ boolean TimerCommand()
 
   UpperCase(dataBufUc, XdrvMailbox.data);
   int command_code = GetCommandCode(command, sizeof(command), XdrvMailbox.topic, kTimerCommands);
-  if ((CMND_TIMER == command_code) && (index > 0) && (index <= MAX_TIMERS)) {
+  if (-1 == command_code) {
+    serviced = false;  // Unknown command
+  }
+  else if ((CMND_TIMER == command_code) && (index > 0) && (index <= MAX_TIMERS)) {
     uint8_t error = 0;
     if (XdrvMailbox.data_len) {
       if ((XdrvMailbox.payload >= 0) && (XdrvMailbox.payload <= MAX_TIMERS)) {
@@ -484,7 +487,7 @@ boolean TimerCommand()
     snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_SVALUE, command, lbuff);
   }
 #endif
-  else serviced = false;
+  else serviced = false;  // Unknown command
 
   return serviced;
 }

@@ -143,6 +143,7 @@ extern "C" uint32_t _SPIFFS_end;
 
 uint32_t settings_hash = 0;
 uint32_t settings_location = SETTINGS_LOCATION;
+uint8_t *settings_buffer = NULL;
 
 /********************************************************************************************/
 /*
@@ -165,6 +166,24 @@ void SetFlashModeDout()
     }
   }
   delete[] _buffer;
+}
+
+void SettingsBufferFree()
+{
+  if (settings_buffer != NULL) {
+    free(settings_buffer);
+    settings_buffer = NULL;
+  }
+}
+
+bool SettingsBufferAlloc()
+{
+  SettingsBufferFree();
+  if (!(settings_buffer = (uint8_t *)malloc(sizeof(Settings)))) {
+    AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_APPLICATION D_UPLOAD_ERR_2));  // Not enough (memory) space
+    return false;
+  }
+  return true;
 }
 
 uint32_t GetSettingsHash()
@@ -521,6 +540,8 @@ void SettingsDefaultSet2()
 
   Settings.latitude = (int)((double)LATITUDE * 1000000);
   Settings.longitude = (int)((double)LONGITUDE * 1000000);
+
+  SettingsDefaultSet_5_13_1c();
 }
 
 /********************************************************************************************/
@@ -650,6 +671,32 @@ void SettingsDefaultSet_5_10_1()
 //#endif  // USE_DISPLAY
   Settings.display_dimmer = 1;
   Settings.display_size = 1;
+}
+
+void SettingsResetStd()
+{
+  Settings.tflag[0].hemis = TIME_STD_HEMISPHERE;
+  Settings.tflag[0].week = TIME_STD_WEEK;
+  Settings.tflag[0].dow = TIME_STD_DAY;
+  Settings.tflag[0].month = TIME_STD_MONTH;
+  Settings.tflag[0].hour = TIME_STD_HOUR;
+  Settings.toffset[0] = TIME_STD_OFFSET;
+}
+
+void SettingsResetDst()
+{
+  Settings.tflag[1].hemis = TIME_DST_HEMISPHERE;
+  Settings.tflag[1].week = TIME_DST_WEEK;
+  Settings.tflag[1].dow = TIME_DST_DAY;
+  Settings.tflag[1].month = TIME_DST_MONTH;
+  Settings.tflag[1].hour = TIME_DST_HOUR;
+  Settings.toffset[1] = TIME_DST_OFFSET;
+}
+
+void SettingsDefaultSet_5_13_1c()
+{
+  SettingsResetStd();
+  SettingsResetDst();
 }
 
 /********************************************************************************************/
@@ -842,7 +889,7 @@ void SettingsDelta()
       Settings.longitude = (int)((double)LONGITUDE * 1000000);
     }
     if (Settings.version < 0x050C000B) {
-      memset(&Settings.rules, 0x00, sizeof(Settings.rules));
+      Settings.rules[0][0] = '\0';
     }
     if (Settings.version < 0x050C000D) {
       memmove(Settings.rules, Settings.rules -256, sizeof(Settings.rules));  // move rules up by 256 bytes
@@ -852,10 +899,21 @@ void SettingsDelta()
       memset(&Settings.knx_physsical_addr, 0x00, 0x800 - 0x6b8);  // Reset until 0x800 for future use
     }
     if (Settings.version < 0x050C000F) {
-        Settings.energy_kWhtoday /= 1000;
-        Settings.energy_kWhyesterday /= 1000;
-        RtcSettings.energy_kWhtoday /= 1000;
+      Settings.energy_kWhtoday /= 1000;
+      Settings.energy_kWhyesterday /= 1000;
+      RtcSettings.energy_kWhtoday /= 1000;
     }
+    if (Settings.version < 0x050D0103) {
+      SettingsDefaultSet_5_13_1c();
+    }
+    if (Settings.version < 0x050E0002) {
+      for (byte i = 1; i < MAX_RULE_SETS; i++) {
+        Settings.rules[i][0] = '\0';
+      }
+      Settings.rule_enabled = Settings.flag.rules_enabled;
+      Settings.rule_once = Settings.flag.rules_once;
+    }
+
     Settings.version = VERSION;
     SettingsSave(1);
   }

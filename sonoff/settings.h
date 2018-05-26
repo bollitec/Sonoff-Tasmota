@@ -20,7 +20,7 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
-#define PARAM8_SIZE  23                    // Number of param bytes
+#define PARAM8_SIZE  18                    // Number of param bytes
 
 typedef union {                            // Restricted by MISRA-C Rule 18.4 but so usefull...
   uint32_t data;                           // Allow bit manipulation using SetOption
@@ -48,11 +48,11 @@ typedef union {                            // Restricted by MISRA-C Rule 18.4 bu
     uint32_t not_power_linked : 1;         // bit 20 (v5.11.1f)
     uint32_t no_power_on_check : 1;        // bit 21 (v5.11.1i)
     uint32_t mqtt_serial : 1;              // bit 22 (v5.12.0f)
-    uint32_t rules_enabled : 1;            // bit 23 (v5.12.0j)
-    uint32_t rules_once : 1;               // bit 24 (v5.12.0k)
+    uint32_t rules_enabled : 1;            // bit 23 (v5.12.0j) - free since v5.14.0b
+    uint32_t rules_once : 1;               // bit 24 (v5.12.0k) - free since v5.14.0b
     uint32_t knx_enabled : 1;              // bit 25 (v5.12.0l) KNX
-    uint32_t spare26 : 1;
-    uint32_t spare27 : 1;
+    uint32_t device_index_enable : 1;      // bit 26 (v5.13.1a)
+    uint32_t knx_enable_enhancement : 1;   // bit 27 (v5.14.0a) KNX
     uint32_t spare28 : 1;
     uint32_t spare29 : 1;
     uint32_t spare30 : 1;
@@ -88,6 +88,17 @@ typedef union {
     uint32_t temperature_resolution : 2;
   };
 } SysBitfield2;
+
+typedef union {
+  uint16_t data;
+  struct {
+    uint16_t hemis : 1;                    // bit 0        = 0=Northern, 1=Southern Hemisphere (=Opposite DST/STD)
+    uint16_t week : 3;                     // bits 1 - 3   = 0=Last week of the month, 1=First, 2=Second, 3=Third, 4=Fourth
+    uint16_t month : 4;                    // bits 4 - 7   = 1=Jan, 2=Feb, ... 12=Dec
+    uint16_t dow : 3;                      // bits 8 - 10  = day of week, 1=Sun, 2=Mon, ... 7=Sat
+    uint16_t hour : 5;                     // bits 11 - 15 = 0-23
+  };
+} TimeRule;
 
 typedef union {
   uint32_t data;
@@ -148,9 +159,7 @@ struct SYSCFG {
   uint8_t       display_address[8];        // 2D8
   uint8_t       display_dimmer;            // 2E0
   uint8_t       display_size;              // 2E1
-
-  uint8_t       free_2E2[4];               // 2E2
-
+  TimeRule      tflag[2];                  // 2E2
   uint16_t      pwm_frequency;             // 2E6
   power_t       power;                     // 2E8
   uint16_t      pwm_value[MAX_PWMS];       // 2EC
@@ -159,6 +168,10 @@ struct SYSCFG {
   uint8_t       ex_power;                  // 2FA Not used since 5.8.0j
   uint8_t       ledstate;                  // 2FB
   uint8_t       param[PARAM8_SIZE];        // 2FC was domoticz_in_topic until 5.1.6
+  int16_t       toffset[2];                // 30E
+
+  byte          free_312[1];               // 312
+
   char          state_text[4][11];         // 313
   uint8_t       energy_power_delta;        // 33F
   uint16_t      domoticz_update_timer;     // 340
@@ -219,9 +232,8 @@ struct SYSCFG {
   uint8_t       light_color[5];            // 498
   uint8_t       light_correction;          // 49D
   uint8_t       light_dimmer;              // 49E
-
-  byte          free_49F[2];               // 49F
-
+  uint8_t       rule_enabled;              // 49F
+  uint8_t       rule_once;                 // 4A0
   uint8_t       light_fade;                // 4A1
   uint8_t       light_speed;               // 4A2
   uint8_t       light_scheme;              // 4A3
@@ -258,11 +270,14 @@ struct SYSCFG {
   byte          knx_GA_param[MAX_KNX_GA];  // 6E2  Type of Input (relay changed, button pressed, sensor read <-teleperiod)
   byte          knx_CB_param[MAX_KNX_CB];  // 6EC  Type of Output (set relay, toggle relay, reply sensor value)
 
-  byte          free_6f6[266];             // 6F6
+  byte          free_6f6[216];             // 6F6
 
-  char          rules[MAX_RULE_SIZE];      // 800 uses 512 bytes in v5.12.0m
+  char          mems[RULES_MAX_MEMS][10];  // 7CE
+                                           // 800 Full - no more free locations
 
-                                           // A00 - FFF free locations
+  char          rules[MAX_RULE_SETS][MAX_RULE_SIZE]; // 800 uses 512 bytes in v5.12.0m, 3 x 512 bytes in v5.14.0b
+
+                                           // E00 - FFF free locations
 } Settings;
 
 struct RTCMEM {
@@ -273,6 +288,7 @@ struct RTCMEM {
   unsigned long energy_kWhtotal;              // 008
   unsigned long pulse_counter[MAX_COUNTERS];  // 00C
   power_t       power;                     // 01C
+                                           // 020 next free location
 } RtcSettings;
 
 struct TIME_T {
@@ -288,19 +304,6 @@ struct TIME_T {
   unsigned long days;
   unsigned long valid;
 } RtcTime;
-
-struct TimeChangeRule
-{
-  uint8_t       hemis;                     // 0-Northern, 1=Southern Hemisphere (=Opposite DST/STD)
-  uint8_t       week;                      // 1=First, 2=Second, 3=Third, 4=Fourth, or 0=Last week of the month
-  uint8_t       dow;                       // day of week, 1=Sun, 2=Mon, ... 7=Sat
-  uint8_t       month;                     // 1=Jan, 2=Feb, ... 12=Dec
-  uint8_t       hour;                      // 0-23
-  int           offset;                    // offset from UTC in minutes
-};
-
-TimeChangeRule DaylightSavingTime = { TIME_DST }; // Daylight Saving Time
-TimeChangeRule StandardTime = { TIME_STD }; // Standard Time
 
 struct XDRVMAILBOX {
   uint16_t      valid;

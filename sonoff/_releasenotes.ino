@@ -1,18 +1,51 @@
-/* 5.13.1a
- * Change user_config.h otaurl to http://sonoff.maddox.co.uk/tasmota/sonoff.bin (#2588, #2602)
+/* 5.14.0b
+ * Add two rule sets of 511 characters using commands rule1, rule2 and rule3
+ * Add rule support for IrReceive and RfReceive (#2758)
+ *
+ * 5.14.0a
+ * Add feature information to Status 4
+ * Add tools folder with python script decode-status.py for decoding some status fields like SetOption and Features
+ * Add Eastron SDM630 energy meter by Gennaro Tortone (#2735)
+ * Add KNX communication enhancement by Adrian Scillato (#2742)
+ * Add KNX energy data by Adrian Scillato (#2750)
+ * Add python script fw-server.py in tools folder to create a simple OTA server by Gennaro Tortone (#2759)
+ * Add rules %mem1% to %mem5% variable names storing data in flash (#2780)
+ * Add rules test on %varx% or %memx% (#2780)
+ * Add optional token %id% substituting the unique MAC address to fulltopic by Michael Graf (#2794)
+ * Fix display selection of un-available GPIO options in Module Configuration webpage (#2718)
+ * Fix timer re-trigger within one minute after restart (#2744)
+ * Fix IRSend not accepting data value of 0 by David Conran (#2751)
+ * Fix vars on rules by Adrian Scillato (#2769)
+ * Fix bug in KNX menu by Adrian Scillato (#2770)
+ * Fix anomalies in rules (#2778)
+ * Fix HUE bridge V1 software version by Heiko Krupp (#2788)
+ *
+ * 5.14.0 20180515
+ * Update language files
+ * Update TasmotaSerial to 2.0.0 allowing Hardware Serial Fallback when correct connections are configured
+ * Change command handling
+ * Change user_config(_override).h defines TIME_STD and TIME_DST
+ * Change user_config(_override).h otaurl to http://sonoff.maddox.co.uk/tasmota/sonoff.bin (#2588, #2602)
  * Fix configuration restore regression from 5.13.1
  * Fix compile error when ADC is enabled and Rules are disabled (#2608)
  * Fix rule power trigger when no backlog command is used (#2613)
  * Fix several timer data input and output errors (#2597, #2620)
  * Fix KNX config error (#2628)
+ * Fix sensor MHZ-19 vanishing data over time (#2659)
+ * Fix KNX reconnection issue (#2679)
+ * Fix DST and STD time for Southern Hemisphere by Adrian Scillato (#2684, #2714)
  * Add Portuguese in Brazil language file
+ * Add SetOption26 to enforce use of indexes even when only one relay is present (#1055)
+ * Add support for sensor SI1145 UV Index / IR / Visible light (#2496)
  * Add rule state test for On/Off in addition to 0/1 (#2613)
- * Updated Italian language file (#2618)
+ * Add hardware serial option to MHZ-19 sensor (#2659)
+ * Add Eastron SDM120 energy meter by Gennaro Tortone (#2694)
+ * Add user entry DST/STD using commands TimeStd and TimeDst (See wiki for parameter syntax) (#2721)
  *
  * 5.13.1 20180501
  * Fix JSON buffers size too small for execution in some situations (#2580)
- * Add define MODULE for user selecting default model although it preferably should not be changed (#569, #2589)
  * Fix configuration restore (#2591)
+ * Add define MODULE for user selecting default model although it preferably should not be changed (#569, #2589)
  *
  * 5.13.0 20180430
  * Change platformio option sonoff-ds18x20 to sonoff-allsensors enabling ds18x20 and all other sensors in one image
